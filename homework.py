@@ -7,7 +7,7 @@ import requests
 import telegram
 
 from config import (ENDPOINT, ENVLIST, HEADERS, HOMEWORK_VERDICTS,
-                    PRACTICUM_TOKEN, RETRY_PERIOD, TELEGRAM_CHAT_ID,
+                    RETRY_PERIOD, TELEGRAM_CHAT_ID,
                     TELEGRAM_TOKEN)
 from exceptions import (APIResponseError, CurrentDateError,
                         MassageNotSentError, RequestAPIError)
@@ -24,12 +24,12 @@ handler.setFormatter(formatter)
 
 def check_tokens():
     """Проверка доступности переменных окружения."""
-    for i in ENVLIST:
-        if not globals()[i]:
+    for env in ENVLIST:
+        if not globals()[env]:
             logger.critical(
-                f'Отсутствует обязательная переменная окружения: {i}'
+                f'Отсутствует обязательная переменная окружения: {env}'
             )
-    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
+    return ENVLIST
 
 
 def send_message(bot, message):
@@ -78,12 +78,9 @@ def check_response(response):
         raise TypeError('Ответ API не словарь')
     if response.get('current_date') is None:
         raise CurrentDateError('В ответе API отсутствует ключ current_date')
-
-    try:
-        homeworks = response['homeworks']
-    except KeyError as error:
-        raise KeyError(f'В ответе API нет ключа {error}')
-
+    if response('homeworks') is None:
+        raise KeyError('В ответе API нет ключа homeworks')
+    homeworks = response['homeworks']
     if not isinstance(homeworks, list):
         raise TypeError(
             'В ответе API ключ homeworks - не список!'
@@ -124,17 +121,19 @@ def main():
         sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-    last_exception_message = ''
+    last_message = ''
 
     while True:
         try:
             response = get_api_answer(timestamp=timestamp)
             homework = check_response(response)
+            message = parse_status(homework[0])
             if len(homework) == 0:
                 logger.debug('Отсутствуют новые статусы в ответе API')
             else:
-                if last_exception_message != parse_status(homework[0]):
-                    send_message(bot=bot, message=parse_status(homework[0]))
+                if last_message != message:
+                    send_message(bot=bot, message=message)
+                    last_message = message
 
             timestamp = response.get('current_date')
         except MassageNotSentError as error:
@@ -142,9 +141,9 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
-            if last_exception_message != message:
+            if last_message != message:
                 send_message(bot=bot, message=message)
-                last_exception_message = message
+                last_message = message
         finally:
             time.sleep(RETRY_PERIOD)
 
