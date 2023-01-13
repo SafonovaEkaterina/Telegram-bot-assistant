@@ -66,7 +66,7 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Получение ответа API."""
     logging.info('Запрос к API c отправляется')
-    timestamp = 0
+    timestamp = timestamp or 0
     params = {'from_date': timestamp}
 
     try:
