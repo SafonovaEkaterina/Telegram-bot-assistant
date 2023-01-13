@@ -7,7 +7,7 @@ import requests
 import telegram
 
 from config import (ENDPOINT, ENVLIST, HEADERS, HOMEWORK_VERDICTS,
-                    RETRY_PERIOD, TELEGRAM_CHAT_ID,
+                    PRACTICUM_TOKEN, RETRY_PERIOD, TELEGRAM_CHAT_ID,
                     TELEGRAM_TOKEN)
 from exceptions import (APIResponseError, CurrentDateError,
                         MassageNotSentError, RequestAPIError)
@@ -24,12 +24,14 @@ handler.setFormatter(formatter)
 
 def check_tokens():
     """Проверка доступности переменных окружения."""
+    ok = True
     for env in ENVLIST:
         if not globals()[env]:
             logger.critical(
                 f'Отсутствует обязательная переменная окружения: {env}'
             )
-    return ENVLIST
+            ok = False
+    return ok
 
 
 def send_message(bot, message):
@@ -76,11 +78,13 @@ def check_response(response):
     logging.info('Начало проверки ответа сервера')
     if not isinstance(response, dict):
         raise TypeError('Ответ API не словарь')
-    if response.get('current_date') is None:
+    if 'current_date' not in response:
         raise CurrentDateError('В ответе API отсутствует ключ current_date')
-    if response('homeworks') is None:
+    if 'homeworks' not in response:
         raise KeyError('В ответе API нет ключа homeworks')
+
     homeworks = response['homeworks']
+
     if not isinstance(homeworks, list):
         raise TypeError(
             'В ответе API ключ homeworks - не список!'
