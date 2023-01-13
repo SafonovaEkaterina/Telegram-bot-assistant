@@ -66,7 +66,7 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Получение ответа API."""
     logging.info('Запрос к API c отправляется')
-    timestamp = timestamp or int(time.time())
+    timestamp = 0
     params = {'from_date': timestamp}
 
     try:
@@ -142,15 +142,15 @@ def main():
         logger.critical(error)
         sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time())
+    timestamp = 0
     last_message = ''
 
     while True:
         try:
             response = get_api_answer(timestamp=timestamp)
-            homework = check_response(response)
-            message = parse_status(homework[0])
-            if len(homework) == 0:
+            homeworks = check_response(response)
+            message = parse_status(homeworks[0])
+            if len(homeworks) == 0:
                 logger.debug('Отсутствуют новые статусы в ответе API')
             else:
                 if last_message != message:
