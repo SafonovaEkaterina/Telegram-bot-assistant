@@ -1,34 +1,15 @@
 import logging
-import os
 import sys
 import time
 from http import HTTPStatus
 
 import requests
 import telegram
-from dotenv import load_dotenv
 
+from config import (ENDPOINT, ENVLIST, HEADERS, HOMEWORK_VERDICTS,
+                    RETRY_PERIOD, TELEGRAM_CHAT_ID, TELEGRAM_TOKEN)
 from exceptions import (APIResponseError, CurrentDateError,
                         MassageNotSentError, RequestAPIError)
-
-load_dotenv()
-
-
-PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-RETRY_PERIOD = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
-HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
-ENVLIST = ['PRACTICUM_TOKEN', 'TELEGRAM_TOKEN', 'TELEGRAM_CHAT_ID']
-
-HOMEWORK_VERDICTS = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -149,10 +130,10 @@ def main():
         try:
             response = get_api_answer(timestamp=timestamp)
             homeworks = check_response(response)
-            message = parse_status(homeworks[0])
             if len(homeworks) == 0:
                 logger.debug('Отсутствуют новые статусы в ответе API')
             else:
+                message = parse_status(homeworks[0])
                 if last_message != message:
                     send_message(bot=bot, message=message)
                     last_message = message
